@@ -1,15 +1,18 @@
 <template>
   <div id="app">
-    <Login />
+    <router-view></router-view>
   </div>
 </template>
 
 <script>
-import Login from './components/Login.vue';
-
 export default {
-  components: {
-    Login
-  }
-};
+  name: 'App'
+}
 </script>
+
+<style>
+#app {
+  min-height: 100vh;
+  background: var(--background);
+}
+</style>

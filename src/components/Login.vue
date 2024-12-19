@@ -1,71 +1,165 @@
 <template>
-    <div class="login">
+  <div class="login-container">
+    <div class="login-card">
       <h2>Login</h2>
       <form @submit.prevent="login">
-        <div>
+        <div class="form-group">
           <label for="username">Username:</label>
-          <input type="text" v-model="username" required />
+          <input 
+            type="text" 
+            id="username"
+            v-model="username" 
+            required 
+          />
         </div>
-        <div>
+        <div class="form-group">
           <label for="password">Password:</label>
-          <input type="password" v-model="password" required />
+          <input 
+            type="password" 
+            id="password"
+            v-model="password" 
+            required 
+          />
         </div>
-        <button type="submit">Login</button>
-        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-        <p v-if="successMessage" class="success">{{ successMessage }}</p>
+        <button type="submit" :disabled="loading">
+          {{ loading ? 'Logging in...' : 'Login' }}
+        </button>
+        <p v-if="error" class="error">{{ error }}</p>
       </form>
     </div>
-  </template>
-  
-  <script>
-  import axios from 'axios';
-  
-  export default {
-    data() {
-      return {
-        username: '',
-        password: '',
-        errorMessage: '',
-        successMessage: ''
-      };
-    },
-    methods: {
-      async login() {
-        try {
-          const response = await axios.post('http://localhost:5000/api/login', {
-            username: this.username,
-            password: this.password
-          });
-  
-          // Assuming the response contains a token and user role
-          const { token, role } = response.data;
-  
-          // Store the token in local storage
-          localStorage.setItem('token', token);
-  
-          // Store user role in local storage or state management
-          localStorage.setItem('role', role);
-  
-          // Redirect to the dashboard
-          this.$router.push('/dashboard'); // Adjust the route as necessary
-  
-          // Optionally, you can also set a success message
-          this.successMessage = 'Login successful!';
-        } catch (error) {
-          this.errorMessage = 'Login failed. Please check your credentials.';
-          console.error('Login error:', error);
+  </div>
+</template>
+
+<script>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
+import axios from 'axios';
+
+export default {
+  setup() {
+    const username = ref('');
+    const password = ref('');
+    const error = ref('');
+    const loading = ref(false);
+    const router = useRouter();
+    const authStore = useAuthStore();
+
+    const login = async () => {
+      try {
+        loading.value = true;
+        error.value = '';
+
+        const response = await axios.post('http://localhost:5000/api/login', {
+          username: username.value,
+          password: password.value
+        });
+
+        // Store auth data
+        authStore.setToken(response.data.token);
+        authStore.setUser({
+          id: response.data.userId,
+          username: response.data.username,
+          role: response.data.role
+        });
+
+        // Redirect based on role
+        if (response.data.role === 'ADMIN') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/user/dashboard');
         }
+      } catch (err) {
+        console.error('Login error:', err);
+        error.value = err.response?.data?.message || 'Login failed. Please try again.';
+      } finally {
+        loading.value = false;
       }
-    }
-  };
-  </script>
-  
-  <style scoped>
-  /* Add your styles here */
-  .error {
-    color: red;
+    };
+
+    return {
+      username,
+      password,
+      error,
+      loading,
+      login
+    };
   }
-  .success {
-    color: green;
-  }
-  </style>
+};
+</script>
+
+<style scoped>
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #1a1a1a;
+}
+
+.login-card {
+  background: #242424;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+h2 {
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  color: #ffffff;
+}
+
+input:focus {
+  outline: none;
+  border-color: #FFD700;
+}
+
+button {
+  width: 100%;
+  padding: 0.75rem;
+  background: #FFD700;
+  border: none;
+  border-radius: 4px;
+  color: #000000;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background: #FFC700;
+}
+
+button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #ff4444;
+  text-align: center;
+  margin-top: 1rem;
+}
+</style>
