@@ -93,8 +93,8 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  background: #1a1a1a;
+  min-height: calc(100vh - 15rem);
+  margin-top: 50px;
 }
 
 .login-card {
