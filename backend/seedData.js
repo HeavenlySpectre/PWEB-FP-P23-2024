@@ -59,8 +59,8 @@ const paymentSchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['PENDING', 'PAID', 'OVERDUE'],
-    default: 'PENDING'
+    enum: ['UNPAID', 'PAID', 'OVERDUE'],
+    default: 'UNPAID'
   }
 });
 
@@ -170,7 +170,7 @@ const seedData = async () => {
         payment_method: 'BANK_TRANSFER',
         rent_periods: 6,
         services: ['LAUNDRY', 'CLEANING', 'CATERING'],
-        status: 'PENDING'
+        status: 'UNPAID'
       })
     ]);
     console.log('Payments created');

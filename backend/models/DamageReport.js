@@ -11,6 +11,10 @@ const damageReportSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  username: { // Tambahan field username
+    type: String,
+    required: true
+  },
   message: {
     type: String,
     required: true

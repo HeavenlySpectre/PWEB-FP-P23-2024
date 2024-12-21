@@ -2,7 +2,7 @@
     <div class="facility-reports">
       <ul>
         <li v-for="report in reports" :key="report._id">
-          <p>User: {{ report.user.username }}</p>
+          <p>User: {{ report.username }}</p>
           <p>Message: {{ report.message }}</p>
           <p>Date: {{ formatDate(report.created_at) }}</p>
         </li>

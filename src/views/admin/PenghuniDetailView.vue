@@ -19,9 +19,10 @@
         <div class="container">
           <div class="header-section">
             <div class="left-section">
-              <router-link to="/admin/laporan/fasilitas" class="btn-back">
-                ← Kembali
-              </router-link>
+              <button @click="goBack" class="btn btn-back">
+                <i class="fas fa-chevron-left"></i>
+                Kembali
+              </button>
               <h2>Detail Penghuni: {{ userDetails?.username }}</h2>
             </div>
             <button @click="confirmRemove" class="btn btn-danger">
@@ -245,7 +246,11 @@
           alert('Gagal menghapus penghuni. Silakan coba lagi.');
         }
       };
-  
+      
+      const goBack = () => {
+      router.back();
+      };
+
       // Fungsi untuk logout
       const logout = () => {
         authStore.logout();
@@ -266,6 +271,7 @@
         confirmRemove,
         removePenghuni,
         logout,
+        goBack,
         getPaymentStatusClass,
         getPaymentStatusLabel,
         formatPaymentMethod,

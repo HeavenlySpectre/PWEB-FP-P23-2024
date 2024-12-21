@@ -7,15 +7,9 @@
           <span>P23</span>
         </div>
         <div class="nav-links">
-          <router-link to="/admin/dashboard" class="active"
-            >Dashboard</router-link
-          >
-          <router-link to="/admin/laporan/fasilitas"
-            >Laporan Fasilitas</router-link
-          >
-          <router-link to="/admin/laporan/penghuni"
-            >Laporan Penghuni</router-link
-          >
+          <router-link to="/admin/dashboard" class="active">Dashboard</router-link>
+          <router-link to="/admin/laporan/fasilitas">Laporan Fasilitas</router-link>
+          <router-link to="/admin/laporan/penghuni">Laporan Penghuni</router-link>
           <button @click="logout" class="btn btn-logout">Logout</button>
         </div>
       </div>
@@ -46,6 +40,7 @@
           </div>
         </div>
 
+        <div class="stats-grid2">
         <div class="charts-section">
           <div class="card payment-chart">
             <h3>Status Pembayaran</h3>
@@ -57,6 +52,35 @@
             <canvas id="occupancyChart"></canvas>
           </div>
         </div>
+        </div>
+
+        <!-- Tambahkan Bagian Daftar Penghuni di Sini -->
+        <div class="card penghuni-list">
+          <h3>Daftar Penghuni</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>Nama Penghuni</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(penghuni, index) in penghuniList" :key="penghuni._id">
+                <td>{{ index + 1 }}</td>
+                <td>
+                    {{ penghuni.username }}
+                </td>
+                <td>
+                  <router-link :to="`/admin/penghuni/${penghuni._id}`" class="btn btn-details">
+                    Detail
+                  </router-link>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Akhir Bagian Daftar Penghuni -->
       </div>
     </main>
   </div>
@@ -77,6 +101,8 @@ export default {
     const occupancyData = ref({ filled: 0, empty: 0, total: 10 });
     const loading = ref(true);
     const error = ref(null);
+    const penghuniList = ref([]); // Tambahkan ini untuk menyimpan daftar penghuni
+    let paymentChartInstance = null; // Menyimpan instance chart
 
     const calculateOccupancy = computed(() => {
       const total = occupancyData.value.total || 10;
@@ -98,29 +124,59 @@ export default {
       } catch (err) {
         error.value = "Failed to fetch occupancy data";
         console.error(err);
-      } finally {
-        loading.value = false;
       }
     };
 
-    const logout = () => {
-      authStore.logout();
-      router.push("/login");
+    const fetchPaymentStatusData = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/admin/payment-status",
+          {
+            headers: {
+              Authorization: `Bearer ${authStore.token}`,
+            },
+          }
+        );
+        const data = response.data;
+        console.log("Payment Status Data:", data);
+        return data;
+      } catch (err) {
+        console.error("Error fetching payment status:", err);
+        return { PAID: 0, UNPAID: 0, OVERDUE: 0 };
+      }
     };
 
-    onMounted(() => {
-      fetchOccupancyData();
+    const fetchPenghuniList = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/admin/penghuni",
+          {
+            headers: {
+              Authorization: `Bearer ${authStore.token}`,
+            },
+          }
+        );
+        penghuniList.value = response.data;
+        console.log("Penghuni List:", penghuniList.value);
+      } catch (err) {
+        console.error("Error fetching penghuni list:", err);
+        // Anda bisa menambahkan penanganan error sesuai kebutuhan
+      }
+    };
 
-      // Initialize Payment Chart
-      const paymentCtx = document.getElementById("paymentChart");
-      new Chart(paymentCtx, {
+    const renderPaymentChart = (data) => {
+      const paymentCtx = document.getElementById("paymentChart").getContext("2d");
+      if (paymentChartInstance) {
+        paymentChartInstance.destroy(); // Hancurkan chart sebelumnya jika ada
+      }
+      paymentChartInstance = new Chart(paymentCtx, {
         type: "doughnut",
         data: {
-          labels: ["Lunas", "Belum Lunas"],
+          labels: ["PAID", "UNPAID", "OVERDUE"],
           datasets: [
             {
-              data: [70, 30],
-              backgroundColor: ["#FFD700", "#E2E8F0"],
+              data: [data.PAID, data.UNPAID, data.OVERDUE],
+              backgroundColor: ["#28a745", "#dc3545", "#ffc107"],
             },
           ],
         },
@@ -138,9 +194,10 @@ export default {
           },
         },
       });
+    };
 
-      // Initialize Occupancy Trend Chart
-      const occupancyCtx = document.getElementById("occupancyChart");
+    const renderOccupancyTrendChart = () => {
+      const occupancyCtx = document.getElementById("occupancyChart").getContext("2d");
       new Chart(occupancyCtx, {
         type: "line",
         data: {
@@ -189,6 +246,19 @@ export default {
           },
         },
       });
+    };
+
+    const logout = () => {
+      authStore.logout();
+      router.push("/login");
+    };
+
+    onMounted(async () => {
+      await fetchOccupancyData();
+      const paymentData = await fetchPaymentStatusData();
+      renderPaymentChart(paymentData);
+      renderOccupancyTrendChart();
+      await fetchPenghuniList(); // Tambahkan ini untuk mengambil daftar penghuni
     });
 
     return {
@@ -197,6 +267,7 @@ export default {
       error,
       logout,
       calculateOccupancy,
+      penghuniList, // Tambahkan ini agar dapat diakses di template
     };
   },
 };
@@ -274,6 +345,13 @@ export default {
   margin-bottom: 2rem;
 }
 
+.stats-grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1.3fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
 .stat-card {
   background: #242424;
   padding: 1.5rem;
@@ -317,6 +395,44 @@ export default {
   position: relative;
 }
 
+.penghuni-list {
+  overflow-x: auto; /* Menambahkan scroll horizontal jika tabel terlalu lebar */
+}
+
+.penghuni-list table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.penghuni-list th,
+.penghuni-list td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #444444;
+}
+
+.penghuni-list th {
+  background-color: #333333;
+}
+
+.penghuni-list tr:hover {
+  background-color: #2a2a2a;
+}
+
+.btn-details {
+  background: #007bff;
+  color: #ffffff;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.btn-details:hover {
+  background: #0056b3;
+}
+
 .btn-logout {
   background: #dc3545;
   color: #ffffff;
@@ -355,7 +471,8 @@ h3 {
   }
 
   .payment-chart,
-  .occupancy-trend {
+  .occupancy-trend,
+  .penghuni-list {
     height: 300px;
   }
 }
